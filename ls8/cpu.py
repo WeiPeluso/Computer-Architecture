@@ -1,13 +1,48 @@
 """CPU functionality."""
 
 import sys
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+MUL = 0b10100010
+MOD = 0b10100100
+DIV = 0b10100011
+ADD = 0b10100000
+SUB = 0b10100001
+PRA = 0b01001000
+AND = 0b10101000
+NOT = 0b01101001
+OR = 0b10101010
+XOR = 0b10101011
+SHL = 0b10101100
+SHR = 0b10101101
+NOP = 0b00000000
+LD = 0b10000011
+ST = 0b10000100
+CMP = 0b10100111
+INC = 0b01100101
+DEC = 0b01100110
+PUSH = 0b01000101
+POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
+
 
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.pc = 0
+        self.running = False
+        self.ram = [0] * 255
+        self.registers = [0]*8
+
+    def ram_read(self, position):
+        return self.ram[position]
+
+    def ram_write(self, position, command):
+        self.ram[position] = command
 
     def load(self):
         """Load a program into memory."""
@@ -18,25 +53,24 @@ class CPU:
 
         program = [
             # From print8.ls8
-            0b10000010, # LDI R0,8
+            0b10000010,  # LDI R0,8
             0b00000000,
             0b00001000,
-            0b01000111, # PRN R0
+            0b01000111,  # PRN R0
             0b00000000,
-            0b00000001, # HLT
+            0b00000001,  # HLT
         ]
 
         for instruction in program:
             self.ram[address] = instruction
             address += 1
 
-
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        # elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -48,8 +82,8 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
-            #self.fl,
-            #self.ie,
+            # self.fl,
+            # self.ie,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
             self.ram_read(self.pc + 2)
@@ -62,4 +96,17 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        self.running = True
+        while self.running:
+            op = self.ram_read(self.pc)
+            if op == HLT:
+                self.running = False
+            elif op == LDI:
+                reg_num = self.ram[self.pc + 1]
+                value = self.ram[self.pc + 2]
+                self.registers[reg_num] = value
+                self.pc += 3
+            elif op == PRN:
+                reg_num = self.ram[self.pc + 1]
+                print(self.registers[reg_num])
+                self.pc += 2
