@@ -6,21 +6,8 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
-MOD = 0b10100100
-DIV = 0b10100011
-ADD = 0b10100000
-SUB = 0b10100001
-PRA = 0b01001000
-AND = 0b10101000
-NOT = 0b01101001
-OR = 0b10101010
-XOR = 0b10101011
-SHL = 0b10101100
-SHR = 0b10101101
-NOP = 0b00000000
-LD = 0b10000011
-ST = 0b10000100
-CMP = 0b10100111
+PUSH = 0b01000101
+POP = 0b01000110
 
 
 class CPU:
@@ -100,6 +87,7 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+        SP = 7
         self.running = True
         while self.running:
             op = self.ram_read(self.pc)
@@ -117,4 +105,17 @@ class CPU:
                 operand_a = self.ram[self.pc + 1]
                 operand_b = self.ram[self.pc+2]
                 self.registers[operand_a] *= self.registers[operand_b]
+            elif op == PUSH:
+                self.registers[SP] -= 1
+                reg_num = self.ram[self.pc + 1]
+                value = self.registers[reg_num]
+                top_of_stack_addr = self.registers[SP]
+                self.ram[top_of_stack_addr] = value
+            elif op == POP:
+                reg_num = self.ram[self.pc + 1]
+                top_of_stack_addr = self.registers[SP]
+                value = self.ram[top_of_stack_addr]
+                self.registers[reg_num] = value
+                self.registers[SP] += 1
+
             self.pc += op_len
