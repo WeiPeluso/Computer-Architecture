@@ -8,6 +8,12 @@ HLT = 0b00000001
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CMP = 0b10100111
+JMP = 0b01010100
+JNE = 0b01010110
+JEQ = 0b01010101
+CALL = 0b01010000
+RET = 0b00010001
 
 
 class CPU:
@@ -18,7 +24,12 @@ class CPU:
         self.pc = 0
         self.running = False
         self.ram = [0] * 255
-        self.registers = [0]*8
+        self.registers = [0] * 8
+        self.flag = [0] * 8
+        self.flag_lt = 5
+        self.flag_gt = 6
+        self.flag_equal = 7
+        self.SP = 7
 
     def ram_read(self, position):
         return self.ram[position]
@@ -87,7 +98,7 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        SP = 7
+
         self.running = True
         while self.running:
             op = self.ram_read(self.pc)
@@ -98,6 +109,7 @@ class CPU:
                 reg_num = self.ram[self.pc + 1]
                 value = self.ram[self.pc + 2]
                 self.registers[reg_num] = value
+
             elif op == PRN:
                 reg_num = self.ram[self.pc + 1]
                 print(self.registers[reg_num])
@@ -106,16 +118,61 @@ class CPU:
                 operand_b = self.ram[self.pc+2]
                 self.registers[operand_a] *= self.registers[operand_b]
             elif op == PUSH:
-                self.registers[SP] -= 1
+                self.registers[self.SP] -= 1
                 reg_num = self.ram[self.pc + 1]
                 value = self.registers[reg_num]
-                top_of_stack_addr = self.registers[SP]
+                top_of_stack_addr = self.registers[self.SP]
                 self.ram[top_of_stack_addr] = value
             elif op == POP:
                 reg_num = self.ram[self.pc + 1]
                 top_of_stack_addr = self.registers[SP]
                 value = self.ram[top_of_stack_addr]
                 self.registers[reg_num] = value
-                self.registers[SP] += 1
+                self.registers[self.SP] += 1
+            elif op == CALL:
+                reg_num = self.ram[self.pc + 1]
+                return_address = self.pc + 2
+                self.registers[self.SP] -= 1
+                self.ram[self.registers[self.SP]] = return_address
+                subroutin_address = self.registers[reg_num]
+                self.pc = subroutin_address
+            elif op == RET:
+                top_of_stack_addr = self.registers[self.SP]
+                value = self.ram[top_of_stack_addr]
+                self.registers[0] = value
+                self.registers[self.SP] += 1
+                self.pc = self.registers[0]
+            elif op == JMP:
+                reg_num = self.ram[self.pc + 1]
+                self.pc = self.registers[reg_num]
+            elif op == JEQ:
+                reg_num = self.ram[self.pc + 1]
+                if self.flag[self.flag_equal] == 1:
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+            elif op == JNE:
+                reg_num = self.ram[self.pc+1]
+                if self.flag[self.flag_equal] == 0:
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+            elif op == CMP:
+                operand_a = self.ram[self.pc + 1]
+                operand_b = self.ram[self.pc + 2]
 
-            self.pc += op_len
+                if self.registers[operand_a] == self.registers[operand_b]:
+                    self.flag[self.flag_equal] = 1
+
+                elif self.registers[operand_a] < self.registers[operand_b]:
+                    self.flag[self.flag_lt] = 1
+
+                elif self.registers[operand_a] > self.registers[operand_b]:
+                    self.flag[self.flag_gt] = 1
+
+                else:
+                    self.flag[self.flag_lt] = 0
+                    self.flag[self.flag_gt] = 0
+                    self.flag[self.flag_equal] = 0
+            if not (op == JEQ or op == JNE or op == JMP or op == CALL or op == RET):
+                self.pc += op_len
